@@ -1,14 +1,14 @@
 #pragma once
 
 #include <ros/ros.h>
+
 #include <actionlib/client/simple_action_client.h>
-#include <motion_layer/anglePIDAction.h>
-#include <motion_layer/upwardPIDAction.h>
 #include <actionlib/client/terminal_state.h>
+
+#include <motion_layer/heavePIDAction.h>
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
-#include <std_msgs/Float32.h>
 #include <string>
 
 #include <iostream>
@@ -23,19 +23,11 @@ class depthStabilise {
 protected:
 
     ros::NodeHandle nh;
-    actionlib::SimpleActionClient<motion_layer::upwardPIDAction> upwardPIDClient;    
+    actionlib::SimpleActionClient<motion_layer::heavePIDAction> heavePIDClient;    
     
-    motion_layer::upwardPIDGoal upward_PID_goal;
-
-    bool goalReceived;
-    bool close_loop = false;
-    double depth;
-    ros::Subscriber sub_;
+    motion_layer::heavePIDGoal heave_PID_goal;
 
     boost::thread* spin_thread;
-    std::mutex mtx;
-    std::mutex depth_mutex;
-
     moveStraight move_straight;
 
 public:
@@ -43,7 +35,7 @@ public:
     depthStabilise();
     ~depthStabilise();
 
-    void setActive(bool);
-    void depthCB(const std_msgs::Float32Ptr &_msg);
+    void activate (std::string);
+    void deActivate ();
     void spinThread();
 };

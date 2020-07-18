@@ -1,72 +1,60 @@
 #include <line.h>
 
-lineTask::lineTask(): sidewardPIDClient("sidewardPID"), anglePIDClient("turnPID"), 
-                    forwardPIDClient("forwardPID"), th(15) {
-    sub_ = nh_.subscribe("/mavros/imu/yaw", 1, &lineTask::angleCB, this);
-}
+lineTask::lineTask(): swayPIDClient("swayPID"), yawPIDClient("yawPID"), 
+                    surgePIDClient("surgePID"), th(30) {}
 
 lineTask::~lineTask() {}
 
 bool lineTask::setActive(bool value) {
     if (value) {
-        ROS_INFO("Waiting for sidewardPID server to start.");
-        sidewardPIDClient.waitForServer();
 
-        ROS_INFO("sidewardPID server started, sending goal.");
-        sideward_PID_goal.target_distance = 0;
-        sidewardPIDClient.sendGoal(sideward_PID_goal);
+        nh_.setParam("/use_local_yaw", false);
+        nh_.setParam("/use_reference_yaw", false);
+        nh_.setParam("/disable_imu", true);
+        nh_.setParam("/enable_pressure", true);
 
-        ROS_INFO("Waiting for forwardPID server to start.");
-        forwardPIDClient.waitForServer();
+        ROS_INFO("Waiting for swayPID server to start.");
+        swayPIDClient.waitForServer();
 
-        ROS_INFO("forwardPID server started, sending goal.");
-        forward_PID_goal.target_distance = 0;
-        forwardPIDClient.sendGoal(forward_PID_goal);
+        ROS_INFO("swayPID server started, sending goal.");
+        sway_PID_goal.target_sway = 0;
+        swayPIDClient.sendGoal(sway_PID_goal);
 
-        if (!th.isAchieved(0, 10, "forward")) {
+        ROS_INFO("Waiting for surgePID server to start.");
+        surgePIDClient.waitForServer();
+
+        ROS_INFO("surgePID server started, sending goal.");
+        surge_PID_goal.target_surge = 0;
+        surgePIDClient.sendGoal(surge_PID_goal);
+
+        if (!th.isAchieved(0, 25, "surge")) {
             ROS_INFO("NOT able to align to the center of the line");
-            return false;
+            // return false;
         }
 
-        ROS_INFO("Waiting for anglePID server to start.");
-        anglePIDClient.waitForServer();
+        ROS_INFO("Waiting for yawPID server to start.");
+        yawPIDClient.waitForServer();
 
-        bool temp = false;
-
-        while (ros::ok()) {
-            // mtx.lock();
-            temp = angleReceived;
-            // mtx.unlock();
-            if (temp) {
-                break;
-            }
-        }
-
-        ROS_INFO("anglePID server started, sending goal.");
+        ROS_INFO("yawPID server started, sending goal.");
         
-        // mtx.lock();
-        double angle = angle_;
-        // mtx.unlock();
+        yaw_PID_goal.target_yaw = 0;
+        yawPIDClient.sendGoal(yaw_PID_goal);
 
-        angle_PID_goal.target_angle = -angle;
-        anglePIDClient.sendGoal(angle_PID_goal);
-
-        if (!th.isAchieved(-angle, 2, "angle")) {
+        if (!th.isAchieved(0, 2, "yaw")) {
             ROS_INFO("Bot Unbale to align with the line");
-            return false;
+            // return false;
         }
+    	nh_.setParam("/set_local_yaw", true);
+
+        ROS_INFO("Line Task Finished");
     }
     else {
-        anglePIDClient.cancelGoal();
-        sidewardPIDClient.cancelGoal();
-        forwardPIDClient.cancelGoal();
+        yawPIDClient.cancelGoal();
+        swayPIDClient.cancelGoal();
+        surgePIDClient.cancelGoal();
+        
+        nh_.setParam("/disable_imu", false);
+        nh_.setParam("/kill_signal", true);
     }
     return true;
-}
-
-void lineTask::angleCB(const std_msgs::Float32ConstPtr& _msg) {
-    // mtx.lock();
-    angle_ = _msg->data;
-    angleReceived = true;
-    // mtx.unlock();
 }

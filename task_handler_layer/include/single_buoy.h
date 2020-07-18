@@ -3,10 +3,10 @@
 
 #include <ros/ros.h>
 
-#include <motion_layer/forwardPIDAction.h>
-#include <motion_layer/sidewardPIDAction.h>
-#include <motion_layer/anglePIDAction.h>
-#include <motion_layer/upwardPIDAction.h>
+#include <motion_layer/surgePIDAction.h>
+#include <motion_layer/swayPIDAction.h>
+#include <motion_layer/yawPIDAction.h>
+#include <motion_layer/heavePIDAction.h>
 
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
@@ -17,34 +17,35 @@
 #include <boost/thread.hpp>
 #include <string>
 
+#include <depth_stabilise.h>
+
 #include <mutex>
 
 class singleBuoy {
 public:
-    singleBuoy();
-    ~singleBuoy();
-    bool setActive(bool);
-    void forwardCB(const std_msgs::Float32ConstPtr &_msg);
+    singleBuoy ();
+    ~singleBuoy ();
+    bool setActive (bool);
+    void callback (const std_msgs::Float32Ptr&);
 
 private:
-    actionlib::SimpleActionClient<motion_layer::forwardPIDAction> forwardPIDClient;
-    actionlib::SimpleActionClient<motion_layer::sidewardPIDAction> sidewardPIDClient;
-    actionlib::SimpleActionClient<motion_layer::anglePIDAction> anglePIDClient;
-    actionlib::SimpleActionClient<motion_layer::upwardPIDAction> upwardPIDClient;
+    actionlib::SimpleActionClient<motion_layer::surgePIDAction> surgePIDClient;
+    actionlib::SimpleActionClient<motion_layer::swayPIDAction> swayPIDClient;
+    actionlib::SimpleActionClient<motion_layer::yawPIDAction> yawPIDClient;
+    actionlib::SimpleActionClient<motion_layer::heavePIDAction> heavePIDClient;
 
     ros::NodeHandle nh_;
-    ros::Subscriber forward_sub_;
+    ros::Subscriber sub_;
 
-    bool forwardGoalReceived = false;
-
-    motion_layer::sidewardPIDGoal sidewardPIDgoal;
-    motion_layer::forwardPIDGoal forwardPIDgoal;
-    motion_layer::anglePIDGoal anglePIDGoal;
-    motion_layer::upwardPIDGoal upwardPIDgoal;
+    motion_layer::swayPIDGoal swayPIDgoal;
+    motion_layer::surgePIDGoal surgePIDgoal;
+    motion_layer::yawPIDGoal yawPIDGoal;
+    motion_layer::heavePIDGoal heavePIDgoal;
 
     taskHandler th;
+    double forward_distance = 0;
 
-    double forward_distance_;
+    bool goal_received = false;
 
     std::mutex mtx;
 };

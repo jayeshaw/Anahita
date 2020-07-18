@@ -3,9 +3,9 @@
 
 #include <ros/ros.h>
 
-#include <motion_layer/sidewardPIDAction.h>
-#include <motion_layer/anglePIDAction.h>
-#include <motion_layer/forwardPIDAction.h>
+#include <motion_layer/swayPIDAction.h>
+#include <motion_layer/yawPIDAction.h>
+#include <motion_layer/surgePIDAction.h>
 
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
@@ -23,16 +23,15 @@ public:
     lineTask ();
     ~lineTask ();
     bool setActive (bool);
-    void angleCB (const std_msgs::Float32ConstPtr&);
 
 private:
-    actionlib::SimpleActionClient<motion_layer::sidewardPIDAction> sidewardPIDClient;
-    actionlib::SimpleActionClient<motion_layer::anglePIDAction> anglePIDClient;
-    actionlib::SimpleActionClient<motion_layer::forwardPIDAction> forwardPIDClient;
+    actionlib::SimpleActionClient<motion_layer::swayPIDAction> swayPIDClient;
+    actionlib::SimpleActionClient<motion_layer::yawPIDAction> yawPIDClient;
+    actionlib::SimpleActionClient<motion_layer::surgePIDAction> surgePIDClient;
 
-    motion_layer::sidewardPIDGoal sideward_PID_goal;
-    motion_layer::forwardPIDGoal forward_PID_goal;
-    motion_layer::anglePIDGoal angle_PID_goal;
+    motion_layer::swayPIDGoal sway_PID_goal;
+    motion_layer::surgePIDGoal surge_PID_goal;
+    motion_layer::yawPIDGoal yaw_PID_goal;
 
     ros::NodeHandle nh_;
     ros::Subscriber sub_;
@@ -40,8 +39,5 @@ private:
     taskHandler th;
 
     std::mutex mtx;
-
-    double angle_ = 0;
-    bool angleReceived = false;
 };
 #endif // LINE_H

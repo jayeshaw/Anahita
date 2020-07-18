@@ -1,11 +1,11 @@
 #include <ros/ros.h>
-#include <hyperion_msgs/Thrust.h>
+#include <anahita_msgs/Thrust.h>
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "pwm_publisher");
     ros::NodeHandle nh;
 
-    ros::Publisher pwmPublisher = nh.advertise<hyperion_msgs::Thrust>("/pwm", 1000);
+    ros::Publisher pwmPublisher = nh.advertise<anahita_msgs::Thrust>("/pwm", 1);
 
     int pwm_sway;
     int pwm_surge;
@@ -13,6 +13,9 @@ int main(int argc, char** argv) {
     int pwm_roll;
     int pwm_pitch;
     int pwm_heave;
+
+    int torpedo;
+    int marker_dropper;
 
     bool kill_signal = false;
 
@@ -25,12 +28,14 @@ int main(int argc, char** argv) {
 
     nh.setParam("/kill_signal", false);
 
-    ros::Rate r(50);
+    nh.setParam("/torpedo", 0);
+    nh.setParam("/marker_dropper", 0);
 
-    hyperion_msgs::Thrust pwm;
+    ros::Rate r(20);
+
+    anahita_msgs::Thrust pwm;
 
     while(ros::ok()) {
-
         nh.getParam("/pwm_surge", pwm_surge);
         nh.getParam("/pwm_heave", pwm_heave);
         nh.getParam("/pwm_sway", pwm_sway);
@@ -39,7 +44,10 @@ int main(int argc, char** argv) {
         nh.getParam("/pwm_roll", pwm_roll);
         nh.getParam("/pwm_pitch", pwm_pitch);
 
-	    nh.getParam("/kill_signal", kill_signal);
+    	nh.getParam("/kill_signal", kill_signal);
+
+        nh.getParam("/marker_dropper", marker_dropper);
+        nh.getParam("/torpedo", torpedo);
 
         pwm.forward_left = -pwm_surge - pwm_yaw;
         pwm.forward_right = -pwm_surge + pwm_yaw;
@@ -53,6 +61,9 @@ int main(int argc, char** argv) {
         pwm.upward_south_east = -pwm_heave - pwm_roll + pwm_pitch;
         pwm.upward_south_west = -pwm_heave + pwm_roll - pwm_pitch;
 
+        pwm.torpedo = torpedo;
+        pwm.marker_dropper = marker_dropper;
+
         if (kill_signal) {
 
             ROS_INFO("KILL SIGNAL RECIEVED");
@@ -65,6 +76,9 @@ int main(int argc, char** argv) {
             nh.setParam("/pwm_pitch", 0);
 
             nh.setParam("/kill_signal", false);
+
+            nh.setParam("/marker_dropper", 0);
+            nh.setParam("/torpedo", 0);
         }
             
         pwmPublisher.publish(pwm);

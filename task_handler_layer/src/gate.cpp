@@ -1,105 +1,47 @@
 #include <gate.h>
 #include <std_msgs/String.h>
 
-gateTask::gateTask(): forwardPIDClient("forwardPID"), sidewardPIDClient("sidewardPID"), 
-                    anglePIDClient("turnPID"), th(30), upwardPIDClient("upwardPID") {
-	forward_sub_ = nh_.subscribe("/anahita/y_coordinate", 1, &gateTask::forwardCB, this);
-}
+gateTask::gateTask(): swayPIDClient("swayPID"), yawPIDClient("yawPID"), th(30) {}
 
 gateTask::~gateTask() {}
 
 bool gateTask::setActive(bool status) {
     if (status) {
-        ROS_INFO("Waiting for sidewardPID server to start, Gate Task.");
-        sidewardPIDClient.waitForServer();
 
-        ROS_INFO("sidewardPID server started, sending goal, Gate Task.");
-        sidewardPIDgoal.target_distance = 0;
-        sidewardPIDClient.sendGoal(sidewardPIDgoal);
+        nh_.setParam("/enable_pressure", true);
+        depth_stabilise.activate ("reference");
 
-        // ROS_INFO("Waiting for upwardPID server to start, Gate Task.");
-        // upwardPIDClient.waitForServer();
+        ROS_INFO("Waiting for swayPID server to start, Gate Task");
+        swayPIDClient.waitForServer();
 
-        // ROS_INFO("upwardPID server started, sending goal, Gate Task.");
-        // upwardPIDgoal.target_depth = 0;
-        // upwardPIDClient.sendGoal(upwardPIDgoal);
+        ROS_INFO("swayPID server started, sending goal, Gate Task");
+        swayPIDgoal.target_sway = 0;
+        swayPIDClient.sendGoal(swayPIDgoal);
 
         ///////////////////////////////////////////////////
 
-        ROS_INFO("Waiting for anglePID server to start.");
-        anglePIDClient.waitForServer();
+        ROS_INFO("Waiting for yawPID server to start.");
+        yawPIDClient.waitForServer();
 
-        ROS_INFO("anglePID server started, sending goal.");
+        ROS_INFO("yawPID server started, sending goal.");
 
-        anglePIDGoal.target_angle = 0;
-        anglePIDClient.sendGoal(anglePIDGoal);
+        yawPIDGoal.target_yaw = 0;
+        yawPIDClient.sendGoal(yawPIDGoal);
 
         /////////////////////////////////////////////////////
 
-        if (!th.isAchieved(0, 15, "sideward")) {
-            ROS_INFO("Time limit exceeded for the sideward PID");
-            return false;
+        if (!th.isAchieved(0, 15, "sway")) {
+            ROS_INFO("Time limit exceeded for the sway PID");
         }
     
-    	ROS_INFO("Sideward Stabilised");
+    	ROS_INFO("Gate Front completed successfully");
 
-        nh_.setParam("/pwm_surge", 50);
-    	ROS_INFO("setting surge to 50");
-
-        while(ros::ok()) {
-            // mtx.lock();
-	        bool temp = forwardGoalReceived;
-	        // mtx.unlock();
-            if (temp) {
-                break;
-            }           
-        }
-
-        while(ros::ok()) {
-            // mtx.lock();
-	        double forward_distance = forward_distance_;
- 	        // mtx.unlock();
-            if (forward_distance <= 250) {
-                break;
-            }
-        }
-        ROS_INFO("Forward distance less than 250");
-
-        nh_.setParam("/pwm_surge", 0);	
-
-        if (!th.isAchieved(0, 15, "sideward")) {
-            ROS_INFO("Time limit exceeded for the sideward PID");
-            return false;
-        }
-	    sidewardPIDClient.cancelGoal();
-       	nh_.setParam("/current_task", "gate_bottom");
-
-	    ros::Publisher task_pub = nh_.advertise<std_msgs::String>("/current_task", 1);
-
-	    nh_.setParam("/current_task", "gate_bottom");
-	    ROS_INFO("Current task: Gate Bottom");
-
-        // ros::Duration(12).sleep();
-        
-	    nh_.setParam("/pwm_surge", 50);
-
-        if (!th.isDetected("gate_bottom", 30)) {
-            ROS_INFO("Unable to detect gate's bottom");
-            return false;
-        }
         return true;
     }
     else {
-        sidewardPIDClient.cancelGoal();
-        // upwardPIDClient.cancelGoal();
-    	anglePIDClient.cancelGoal();
+        swayPIDClient.cancelGoal();
+    	yawPIDClient.cancelGoal();
+        depth_stabilise.deActivate ();
         nh_.setParam("/kill_signal", true);
     }
-}
-
-void gateTask::forwardCB (const std_msgs::Float32ConstPtr &_msg) {
-    // mtx.lock();
-    forward_distance_ = _msg->data;
-    forwardGoalReceived = true;
-    // mtx.unlock();
 }

@@ -1,8 +1,0 @@
-int16 sideward_front
-int16 sideward_back
-int16 forward_right
-int16 forward_left
-int16 upward_north_east
-int16 upward_north_west
-int16 upward_south_east
-int16 upward_south_west
